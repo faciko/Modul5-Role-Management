@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Mockery;
 use Tests\TestCase;
 
 class RoleManagementTest extends TestCase
@@ -82,6 +84,49 @@ class RoleManagementTest extends TestCase
             ->assertForbidden();
 
         $this->assertSame('customer', $target->fresh()->role);
+    }
+
+    public function test_ac01_observer_mencatat_tepat_satu_log(): void
+    {
+        Log::spy();
+
+        $admin = $this->user('adm', 'admin');
+        $customer = $this->user('cust', 'customer');
+
+        $this->actingAs($admin)
+            ->patch(route('admin.users.role.update', $customer), ['role' => 'staff']);
+
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->with('user.role.changed', Mockery::on(
+                fn (array $ctx): bool => $ctx['target_user_id'] === $customer->id
+                    && $ctx['old_role'] === 'customer'
+                    && $ctx['new_role'] === 'staff'
+                    && $ctx['actor_id'] === $admin->id
+            ));
+    }
+
+    public function test_ac05_dan_ditolak_tidak_menghasilkan_log(): void
+    {
+        Log::spy();
+
+        $admin = $this->user('adm', 'admin');
+        $customer = $this->user('cust', 'customer');
+
+        // AC-05: role sama.
+        $this->actingAs($admin)
+            ->patch(route('admin.users.role.update', $customer), ['role' => 'customer']);
+
+        // AC-03: admin ubah dirinya.
+        $this->actingAs($admin)
+            ->from(route('admin.users.index'))
+            ->patch(route('admin.users.role.update', $admin), ['role' => 'customer']);
+
+        // AC-04: role tidak valid.
+        $this->actingAs($admin)
+            ->patch(route('admin.users.role.update', $customer), ['role' => 'admin']);
+
+        Log::shouldNotHaveReceived('info', ['user.role.changed', Mockery::any()]);
     }
 
     public function test_ac02_guest_dialihkan_ke_login(): void
