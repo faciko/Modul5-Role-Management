@@ -22,7 +22,9 @@ class RoleManagementService
         }
 
         // BR-05: role sama berarti tidak ada yang perlu disimpan.
-        if ($target->role === $newRole) return;
+        if ($target->role === $newRole) {
+            return;
+        }
 
         $target->role = $newRole;
         $target->save();

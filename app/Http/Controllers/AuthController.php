@@ -12,6 +12,7 @@ class AuthController extends Controller
     {
         return view('login');
     }
+
     // POST /login
     public function login(Request $request)
     {
@@ -22,13 +23,16 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             // Mencegah session fixation
             $request->session()->regenerate();
+
             return redirect()->intended('/dashboard');
         }
+
         // Pesan error umum tanpa membocorkan username/password mana yang salah
         return back()->withErrors([
             'login_error' => 'Username atau password salah.',
         ])->onlyInput('username');
     }
+
     // GET /dashboard
     public function dashboard()
     {
@@ -36,12 +40,14 @@ class AuthController extends Controller
             'user' => Auth::user(),
         ]);
     }
+
     // POST /logout
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
         return redirect('/login');
     }
 }
