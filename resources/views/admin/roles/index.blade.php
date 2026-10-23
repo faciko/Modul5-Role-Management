@@ -27,6 +27,8 @@
             <div>
                 <span class="muted">{{ auth()->user()->username }} ({{ auth()->user()->role }})</span>
                 &nbsp;|&nbsp;
+                <a href="{{ route('shop') }}">Toko</a>
+                &nbsp;|&nbsp;
                 <a href="{{ route('dashboard') }}">Dashboard</a>
                 &nbsp;|&nbsp;
                 <form method="POST" action="{{ route('logout') }}" style="display:inline">

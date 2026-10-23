@@ -1,58 +1,94 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Tugas 1 — Login (baseline W05) + Modul 5 Role Management
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Repo praktikum **Modul 5 Role Management** (Proyek 3 D3 Teknik Informatika).
+Baseline: tugas login W05 (`/login`, `/dashboard`, `/logout`, field `username` + `nama_lengkap`).
+Keranjang W06 disimulasikan lewat route `/cart/add` — lihat `INTEGRASI-W06.md`.
 
-## About Laravel
-
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
-
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
-
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
-
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Setup
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan db:seed      # RoleDemoSeeder: idempoten, akun W05 tidak diduplikasi
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Butuh MySQL aktif (`.env` default: `db_tugas`) atau ubah `DB_CONNECTION` ke `sqlite`.
 
-## Contributing
+## Akun demo
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+| Username | Password    | Role     |
+|----------|-------------|----------|
+| Salman   | rahasia123  | customer |
+| Kevin    | password123 | customer |
+| admin    | admin12345  | admin    |
+| staff    | staff12345  | staff    |
 
-## Code of Conduct
+Admin awal dibuat oleh seeder (jalur tepercaya), **tidak** lewat form registrasi.
+`role` sengaja tidak ada di `$fillable` sehingga tidak bisa diisi mass-assignment.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Halaman
 
-## Security Vulnerabilities
+| URL | Akses | Keterangan |
+|---|---|---|
+| `/login`, `/logout` | publik / auth | Login W05 |
+| `/dashboard` | auth | Menu sesuai ability |
+| `/shop` | publik | Simulasi cart stateless W06 + login JSON |
+| `/admin/users` | admin (`manage-roles`) | Form ubah role (customer ⇄ staff) |
+| `PATCH /admin/users/{user}/role` | admin | Endpoint perubahan role |
+| `/staff/stock` | staff + admin (`adjust-stock`) | Lihat stok |
+| `/admin/products` | admin (`manage-products`) | Kelola katalog |
+| `POST /cart/add` | customer (`use-cart`) | Cart dari payload request |
+| `/api/login`, `/api/me`, `/api/products` | – | Pendukung halaman `/shop` |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Peta komponen (Modul 5 §3.3)
 
-## License
+| Komponen | File |
+|---|---|
+| Gate + registrasi Observer | `app/Providers/AppServiceProvider.php` |
+| Route | `routes/web.php` |
+| Form Request | `app/Http/Requests/ChangeRoleRequest.php` |
+| Controller | `app/Http/Controllers/RoleController.php` |
+| Service | `app/Services/RoleManagementService.php` |
+| Model | `app/Models/User.php` |
+| Observer | `app/Observers/UserObserver.php` |
+| Migration role | `database/migrations/2026_10_19_035537_add_role_to_users_table.php` |
+| Seeder akun | `database/seeders/RoleDemoSeeder.php` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Bukti untuk laporan / code defense
+
+Jalankan:
+
+```bash
+php artisan test
+```
+
+| Test | Membuktikan |
+|---|---|
+| `RoleManagementTest` | AC-01 s/d AC-06, BR-01/03/04, log Observer tepat 1×, AC-05 tanpa `save` |
+| `AbilityMatrixTest` | Access matrix 5 baris + AC-06 (customer → staff, payload sama → 403) |
+| `ObserverEdgeCaseTest` | `save()` memicu log, bulk update tidak, log tanpa data sensitif, Observer ≠ penjaga izin |
+| `BaselineW05Test` | Login/dashboard/logout W05 tetap berjalan |
+
+Lihat log perubahan role:
+
+```bash
+tail -f storage/logs/laravel.log | grep user.role.changed
+```
+
+Contoh:
+```
+[2026-10-23 08:50:44] local.INFO: user.role.changed {"target_user_id":1,"old_role":"customer","new_role":"staff","actor_id":4}
+```
+
+## Troubleshooting cepat
+
+| Gejala | Penyebab umum |
+|---|---|
+| 403 saat login admin | role di DB bukan `admin`, atau nama ability salah |
+| 422 / redirect dengan error | Form Request menolak pilihan role (hanya `customer`, `staff`) |
+| Data berubah tetapi log kosong | Observer belum terdaftar, atau update lewat query builder/bulk |
+| Log muncul dua kali | dua `save()`, dua request, atau Observer terdaftar ganda |
+| 419 | token CSRF basi setelah login/logout — muat ulang halaman `/shop` |
+| Staff masih bisa `cart/add` | session lama; logout lalu login ulang |

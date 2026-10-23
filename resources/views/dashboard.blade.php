@@ -31,8 +31,16 @@
             <p><a href="{{ route('admin.users.index') }}">Kelola Role Pengguna</a></p>
         @endcan
 
+        @can('manage-products')
+            <p><a href="{{ route('admin.products') }}">Kelola Katalog</a></p>
+        @endcan
+
         @can('adjust-stock')
-            <p class="muted">Akses stok: tersedia (staff/admin).</p>
+            <p><a href="{{ route('staff.stock') }}">Lihat Stok</a></p>
+        @endcan
+
+        @can('use-cart')
+            <p><a href="{{ route('shop') }}">Buka Toko (Keranjang)</a></p>
         @endcan
     </div>
 </body>

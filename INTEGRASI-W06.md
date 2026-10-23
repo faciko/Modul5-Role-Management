@@ -1,28 +1,40 @@
 # Rencana Integrasi W06 Stateless Cart
 
-Sesuai Modul 5 bagian 4.1: karena kode W06 (`stateless-shop`) berada pada
-repository lain, praktikum inti menggunakan **route simulasi** dan integrasi
-penuh tidak dipaksa dalam satu sesi.
+Sesuai Modul 5 §4.1: karena kode W06 (`stateless-shop`) berada pada repository
+lain, praktikum inti memakai **route simulasi** dan integrasi penuh tidak
+dipaksa dalam satu sesi.
 
-## Yang sudah ada di repo ini
+## Yang sudah ada di repo ini (simulasi)
 
-- `POST /cart/add` — `CartSimulationController` (payload `{cart, product_id}`,
-  produk hardcode, harga dihitung server).
+- `GET /shop` — halaman cart stateless (JS `fetch`, cart disimpan di memori browser).
+- `POST /cart/add` — `CartSimulationController`, payload `{cart, product_id}`,
+  produk hardcode, harga dihitung server.
 - Middleware: `auth` + `can:use-cart` (Gate `use-cart` = role `customer`).
+- `POST /api/login` + `GET /api/me` — login JSON dan ringkasan ability.
+
+## Bukti AC-06 (sudah diuji)
+
+1. Login `Kevin` (customer) di `/shop` → `POST /cart/add` → **200**.
+2. Admin mengubah Kevin menjadi `staff` lewat `/admin/users`.
+3. Kevin mengirim payload cart **yang sama** → **403** `This action is unauthorized.`
+
+Cart tetap stateless (isi dari request), tetapi hak akses dibaca ulang dari
+session + role di database pada setiap request.
 
 ## Rencana integrasi ke `stateless-shop` asli
 
-1. Tambahkan kolom `role` pada tabel `users` lewat migration `add_role_to_users_table`.
+1. Tambahkan kolom `role` lewat migration `add_role_to_users_table`.
 2. Tambahkan login W05 (`AuthController`, view `login`, route `/login`, `/dashboard`, `/logout`).
-3. Tambahkan Gate `use-cart` di `AppServiceProvider` dan middleware
-   `->middleware(['auth', 'can:use-cart'])` pada `Route::post('/cart/add', ...)`
-   yang sudah ada — cukup satu baris, jangan menulis ulang route.
-4. Halaman `shop.blade.php` perlu menampilkan tombol login/logout dan
-   menampilkan pesan 403 dari `fetch` (saat ini `alert()` sudah menangkap error).
-5. Tambahkan `UserObserver` + registrasi di `AppServiceProvider`.
+3. Tambahkan Gate `use-cart` di `AppServiceProvider`, lalu ubah satu baris:
+   `Route::post('/cart/add', ...)->middleware(['auth', 'can:use-cart']);`
+   — jangan menulis ulang route yang sudah ada.
+4. Tambahkan registrasi `UserObserver` di `AppServiceProvider`.
+5. Di `shop.blade.php`, tambahkan tombol login/logout dan tampilkan status
+   HTTP dari `fetch` (saat ini hanya `alert()`).
 
 ## Catatan
 
-- Cart tetap stateless: isi cart tidak disimpan server, hanya role yang dibaca dari session.
-- Refresh halaman mengosongkan `cart` di JavaScript — perilaku ini normal dan
-  tidak berkaitan dengan Observer role.
+- Refresh halaman mengosongkan `cart` di JavaScript — perilaku normal, tidak
+  berkaitan dengan Observer role.
+- `POST /logout` dari fetch harus memakai token CSRF terbaru; halaman `/shop`
+  membaca token dari header `X-CSRF-Token` pada setiap respons.
