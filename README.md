@@ -58,7 +58,25 @@ Admin awal dibuat oleh seeder (jalur tepercaya), **tidak** lewat form registrasi
 
 ## Bukti untuk laporan / code defense
 
-Jalankan:
+Satu perintah untuk merekam seluruh skenario 6 Quality Check (DB + log + respons):
+
+```bash
+php artisan demo:role
+```
+
+Contoh keluaran:
+
+```
+AC-01 admin mengubah customer menjadi staff
+    DB role: customer -> staff  |  updated_at berubah: ya
+    log user.role.changed: 25 -> 26
+
+AC-05 admin mengirim role yang sama lagi
+    DB role: staff -> staff  |  updated_at berubah: tidak
+    log user.role.changed: 26 -> 26
+```
+
+Perintah ini memulihkan role di akhir. Untuk bukti lewat browser, jalankan:
 
 ```bash
 php artisan test
